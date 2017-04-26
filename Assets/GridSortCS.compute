@@ -64,6 +64,7 @@ uint GridGetValue(uint2 pair) {
 [numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
 void BuildGridCS(uint3 DTid : SV_DispatchThreadID) {
 	const unsigned int P_ID = DTid.x;	// Particle ID to operate on
+	if (P_ID > _NumParticles - 1) return;
 
 	float2 position = _ParticlesBufferRead[P_ID].oldPos;
 	float2 grid_xy = GridCalculateCell(position);
