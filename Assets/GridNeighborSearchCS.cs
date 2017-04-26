@@ -91,16 +91,16 @@ namespace Kodai.NeighborSearch {
             GridSortCS.SetBuffer(kernel, "_GridBufferWrite", gridBuffer);
             GridSortCS.Dispatch(kernel, threadGroupSize, 1, 1);
 
-            DebugGrid(0);
+            //DebugGrid(0);
 
             // -----------------------------------------------------------------
             // Sort Grid : グリッドインデックス順に粒子インデックスをソートする
             // -----------------------------------------------------------------
-            // GPUSort(gridBuffer, gridPingPongBuffer);    // TODO ソートされてない??
+            // GPUSort(gridBuffer, gridPingPongBuffer);
 
             CPUSort();
 
-            DebugGrid(1);
+            //DebugGrid(1);
 
             // -----------------------------------------------------------------
             // Build Grid Indices : グリッドの開始終了インデックスを格納
@@ -108,7 +108,7 @@ namespace Kodai.NeighborSearch {
             // 初期化
             kernel = GridSortCS.FindKernel("ClearGridIndicesCS");
             GridSortCS.SetBuffer(kernel, "_GridIndicesBufferWrite", gridIndicesBuffer);
-            GridSortCS.Dispatch(kernel, Mathf.CeilToInt(numGrid / SIMULATION_BLOCK_SIZE) + 1, 1, 1);
+            GridSortCS.Dispatch(kernel, Mathf.CeilToInt(numGrid / SIMULATION_BLOCK_SIZE)+1, 1, 1);
 
             // 格納
             kernel = GridSortCS.FindKernel("BuildGridIndicesCS");
@@ -116,7 +116,7 @@ namespace Kodai.NeighborSearch {
             GridSortCS.SetBuffer(kernel, "_GridIndicesBufferWrite", gridIndicesBuffer);
             GridSortCS.Dispatch(kernel, threadGroupSize, 1, 1);
 
-            DebugGridIndices();
+            //DebugGridIndices();
 
             //　-----------------------------------------------------------------
             // Rearrange : ソートしたグリッド関連付け配列からパーティクルIDだけを取り出す
@@ -193,6 +193,7 @@ namespace Kodai.NeighborSearch {
             }
             threadGroupSize = Mathf.CeilToInt(maxParticleNum / SIMULATION_BLOCK_SIZE) + 1;
             particlesBufferRead.SetData(particles);
+            particlesBufferWrite.SetData(particles);
         }
 
         public ComputeBuffer GetBuffer() {
@@ -281,11 +282,13 @@ namespace Kodai.NeighborSearch {
 }
 
 public struct Particle {
-    public Vector2 pos;
+    public Vector2 oldPos;
+    public Vector2 newPos;
     public Vector3 color;
 
     public Particle(Vector2 pos) {
-        this.pos = pos;
+        this.oldPos = pos;
+        this.newPos = pos;
         this.color = new Vector3(1, 1, 1);
     }
 }

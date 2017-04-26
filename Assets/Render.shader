@@ -22,7 +22,8 @@
 			float _ParticleRad;
 
 			struct Particle {
-				float2 pos;
+				float2 oldPos;
+				float2 newPos;
 				float3 color;
 			};
 
@@ -36,7 +37,7 @@
 
 			v2g vert(uint id : SV_VertexID) {
 				v2g output;
-				output.pos = float4(_Particles[id].pos, 0, 1);
+				output.pos = float4(_Particles[id].oldPos, 0, 1);
 				output.tex = float2(0, 0);
 				output.col = float4(_Particles[id].color, 1);
 				return output;
