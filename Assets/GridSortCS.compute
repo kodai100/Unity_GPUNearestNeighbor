@@ -26,6 +26,7 @@ int _NumParticles;
 float2 _Range;
 float2 _GridDim;
 float _GridH;
+int _DispIdx;
 
 // -----------------------------------------------------------
 // Grid
@@ -149,8 +150,8 @@ float ClampedConstraint(float x, float max) {
 void Update(uint3 DTid : SV_DispatchThreadID) {
 
 	uint id = DTid.x;
-
-	if (id == 0) {
+	uint d = (uint)(_DispIdx > _NumParticles ? 0 : _DispIdx);
+	if (id == d) {
 		uint myGrid = GridKey(GridCalculateCell(_ParticlesBufferRead[id].oldPos));
 		uint2 g_start_end = _GridIndicesBufferRead[myGrid];
 		for (uint n_id = g_start_end.x; n_id < g_start_end.y; n_id++) {
@@ -162,6 +163,7 @@ void Update(uint3 DTid : SV_DispatchThreadID) {
 	}
 
 	_ParticlesBufferWrite[id].oldPos.x = _ParticlesBufferRead[id].oldPos.x;
-	_ParticlesBufferWrite[id].oldPos.y = ClampedConstraint(_ParticlesBufferRead[id].oldPos.y - 0.1, _Range.y);
+	_ParticlesBufferWrite[id].oldPos.y = _ParticlesBufferRead[id].oldPos.y;
+	//_ParticlesBufferWrite[id].oldPos.y = ClampedConstraint(_ParticlesBufferRead[id].oldPos.y - 0.1, _Range.y);
 
 }

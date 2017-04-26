@@ -24,6 +24,8 @@ namespace Kodai.NeighborSearch {
         static uint TRANSPOSE_BLOCK_SIZE = 16;
 
         public int maxParticleNum = 256;
+        [Range(0, 2048)] public int dispIdx;
+        public bool bitonic;
 
         public Vector2 range = new Vector2(128,128);
         public Vector2 gridDim = new Vector2(16, 16);
@@ -81,6 +83,8 @@ namespace Kodai.NeighborSearch {
             GridSortCS.SetVector("_GridDim", gridDim);
             GridSortCS.SetFloat("_GridH", gridH);
             
+            GridSortCS.SetInt("_DispIdx", dispIdx);
+
             int kernel = 0;
 
             // -----------------------------------------------------------------
@@ -96,10 +100,9 @@ namespace Kodai.NeighborSearch {
             // -----------------------------------------------------------------
             // Sort Grid : グリッドインデックス順に粒子インデックスをソートする
             // -----------------------------------------------------------------
-            // GPUSort(gridBuffer, gridPingPongBuffer);
-
-            CPUSort();
-
+            if(bitonic) GPUSort(gridBuffer, gridPingPongBuffer);
+            else CPUSort();
+            
             //DebugGrid(1);
 
             // -----------------------------------------------------------------
