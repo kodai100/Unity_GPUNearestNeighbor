@@ -36,6 +36,11 @@ namespace Kodai.GridNeighborSearch2D {
         private Particle[] particles;
         #endregion ForParticle
 
+        #region ForThisClass
+        public bool drawGrid = true;
+        public Color gridColor = Color.blue;
+        #endregion ForThisClass
+
         #region Accessor
         public ComputeBuffer GetBuffer() {
             return particlesBufferRead;
@@ -124,15 +129,17 @@ namespace Kodai.GridNeighborSearch2D {
         }
 
         void OnDrawGizmos() {
-            Gizmos.DrawWireCube(range / 2, range);
+            if (drawGrid) {
+                Gizmos.DrawWireCube(range / 2, range);
 
-            Gizmos.color = Color.blue;
-            for (int i = 1; i < gridDim.y; i++) {
-                Gizmos.DrawLine(new Vector3(0, gridH * i, 0), new Vector3(range.x, gridH * i, 0));
-            }
+                Gizmos.color = gridColor;
+                for (int i = 1; i < gridDim.y; i++) {
+                    Gizmos.DrawLine(new Vector3(0, gridH * i, 0), new Vector3(range.x, gridH * i, 0));
+                }
 
-            for (int i = 1; i < gridDim.x; i++) {
-                Gizmos.DrawLine(new Vector3(gridH * i, 0, 0), new Vector3(gridH * i, range.y, 0));
+                for (int i = 1; i < gridDim.x; i++) {
+                    Gizmos.DrawLine(new Vector3(gridH * i, 0, 0), new Vector3(gridH * i, range.y, 0));
+                }
             }
         }
 
