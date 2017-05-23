@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Kodai.NeighborSearch {
+namespace Kodai.GridNeighborSearch2D {
 
     public class Renderer : MonoBehaviour {
 

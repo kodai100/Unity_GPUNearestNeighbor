@@ -1,11 +1,11 @@
-﻿Shader "Custom/PBF2D_GPU" {
+﻿Shader "Custom/Render3D" {
 	Properties{
 		_MainTex("Texture", 2D) = "white" {}
 		_ParticleRad("ParticleRadius", Range(0.01, 1)) = 0.05
 	}
 
 	SubShader{
-		ZWrite Off
+		ZWrite On
 		Blend SrcAlpha OneMinusSrcAlpha
 
 		Pass{
@@ -22,8 +22,8 @@
 			float _ParticleRad;
 
 			struct Particle {
-				float2 oldPos;
-				float2 newPos;
+				float3 oldPos;
+				float3 newPos;
 				float3 color;
 			};
 
@@ -37,7 +37,7 @@
 
 			v2g vert(uint id : SV_VertexID) {
 				v2g output;
-				output.pos = float4(_Particles[id].oldPos, 0, 1);
+				output.pos = float4(_Particles[id].oldPos, 1);
 				output.tex = float2(0, 0);
 				output.col = float4(_Particles[id].color, 1);
 				return output;

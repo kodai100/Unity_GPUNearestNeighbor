@@ -1,0 +1,142 @@
+﻿#pragma kernel BuildGridCS
+#pragma kernel ClearGridIndicesCS
+#pragma kernel BuildGridIndicesCS
+#pragma kernel RearrangeParticlesCS
+#pragma kernel CopyBuffer
+#pragma kernel Update
+
+#define SIMULATION_BLOCK_SIZE 32
+
+struct Particle {
+	float2 pos;
+	float3 color;
+};
+
+StructuredBuffer<Particle>	_ParticlesBufferRead;
+RWStructuredBuffer<Particle> _ParticlesBufferWrite;
+
+StructuredBuffer  <uint2> _GridBufferRead;
+RWStructuredBuffer<uint2> _GridBufferWrite;
+
+StructuredBuffer  <uint2> _GridIndicesBufferRead;
+RWStructuredBuffer<uint2> _GridIndicesBufferWrite;
+
+cbuffer cb {
+	int _NumParticles;
+	float2 _Range;
+	float2 _GridDim;
+	float _GridH;
+	int _DispIdx;
+};
+
+
+float2 GridCalculateCell(float2 pos) {
+	return pos / _GridH;
+}
+
+uint GridKey(uint2 xy) {
+	return xy.x + xy.y * _GridDim.x;
+}
+
+uint2 MakeKeyValuePair(uint2 xy, uint value) {
+	return uint2(GridKey(xy), value);
+}
+
+uint GridGetKey(uint2 pair) {
+	return pair.x;
+}
+
+uint GridGetValue(uint2 pair) {
+	return pair.y;
+}
+
+//--------------------------------------------------------------------------------------
+// Build Grid
+//--------------------------------------------------------------------------------------
+[numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
+void BuildGridCS(uint3 DTid : SV_DispatchThreadID) {
+	const unsigned int P_ID = DTid.x;
+	if (P_ID > _NumParticles - 1) return;
+
+	float2 position = _ParticlesBufferRead[P_ID].pos;
+	float2 grid_xy = GridCalculateCell(position);
+
+	_GridBufferWrite[P_ID] = MakeKeyValuePair((uint2)grid_xy, P_ID);
+}
+
+//--------------------------------------------------------------------------------------
+// Build Grid Indices
+//--------------------------------------------------------------------------------------
+[numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
+void ClearGridIndicesCS(uint3 DTid : SV_DispatchThreadID) {
+	_GridIndicesBufferWrite[DTid.x] = uint2(0, 0);
+}
+
+[numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
+void BuildGridIndicesCS(uint3 DTid : SV_DispatchThreadID) {
+	const unsigned int P_ID = DTid.x;
+	uint P_ID_PREV = (P_ID == 0) ? (uint)_NumParticles : P_ID;
+	P_ID_PREV--;
+	
+	uint P_ID_NEXT = P_ID + 1;
+	if (P_ID_NEXT == (uint)_NumParticles) { P_ID_NEXT = 0; }
+
+	uint cell = GridGetKey(_GridBufferRead[P_ID]);
+	uint cell_prev = GridGetKey(_GridBufferRead[P_ID_PREV]);
+	uint cell_next = GridGetKey(_GridBufferRead[P_ID_NEXT]);
+
+	if (cell != cell_prev) {
+		_GridIndicesBufferWrite[cell].x = P_ID;
+	}
+
+	if (cell != cell_next) {
+		_GridIndicesBufferWrite[cell].y = P_ID + 1;
+	}
+}
+
+[numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
+void RearrangeParticlesCS(uint3 DTid : SV_DispatchThreadID) {
+	const unsigned int ID = DTid.x;
+	const unsigned int G_ID = GridGetValue(_GridBufferRead[ID]);
+	_ParticlesBufferWrite[ID] = _ParticlesBufferRead[G_ID];
+}
+
+[numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
+void CopyBuffer(uint3 DTid : SV_DispatchThreadID) {
+	uint id = DTid.x;
+	_ParticlesBufferWrite[id] = _ParticlesBufferRead[id];
+}
+
+[numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
+void Update(uint3 DTid : SV_DispatchThreadID) {
+
+	uint id = DTid.x;
+
+	_ParticlesBufferWrite[id].color = float3(0, 0, 0);
+
+	uint d = (uint)(_DispIdx > _NumParticles ? 0 : _DispIdx);
+	if (id == d) {
+		int2 G_XY = (int2)GridCalculateCell(_ParticlesBufferRead[id].pos);
+		for (int Y = max(G_XY.y - 1, 0); Y <= min(G_XY.y + 1, _GridDim.y - 1); Y++) {
+			for (int X = max(G_XY.x - 1, 0); X <= min(G_XY.x + 1, _GridDim.x - 1); X++) {
+				unsigned int G_CELL = GridKey(uint2(X, Y));
+				if (G_CELL == GridKey(G_XY)) {
+					// My Cell
+					uint2 G_START_END = _GridIndicesBufferRead[G_CELL];
+					for (unsigned int N_ID = G_START_END.x; N_ID < G_START_END.y; N_ID++) {
+						_ParticlesBufferWrite[N_ID].color = float3(1, 0, 0);
+					}
+				} else {
+					// Neighbor Cell
+					uint2 G_START_END = _GridIndicesBufferRead[G_CELL];
+					for (unsigned int N_ID = G_START_END.x; N_ID < G_START_END.y; N_ID++) {
+						_ParticlesBufferWrite[N_ID].color = float3(0, 1, 1);
+					}
+				}
+				
+			}
+		}
+	}
+
+	_ParticlesBufferWrite[id].pos = _ParticlesBufferRead[id].pos;
+}
