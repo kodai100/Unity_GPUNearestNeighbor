@@ -22,8 +22,7 @@
 			float _ParticleRad;
 
 			struct Particle {
-				float3 oldPos;
-				float3 newPos;
+				float3 pos;
 				float3 color;
 			};
 
@@ -37,7 +36,7 @@
 
 			v2g vert(uint id : SV_VertexID) {
 				v2g output;
-				output.pos = float4(_Particles[id].oldPos, 1);
+				output.pos = float4(_Particles[id].pos, 1);
 				output.tex = float2(0, 0);
 				output.col = float4(_Particles[id].color, 1);
 				return output;
@@ -74,7 +73,12 @@
 			}
 
 			fixed4 frag(v2g i) : COLOR{
-				return  tex2D(_MainTex, i.tex) * i.col;
+
+				fixed4 color = tex2D(_MainTex, i.tex) * i.col;
+
+				if (color.a < 0.8) discard;
+					 
+				return color;
 			}
 
 			ENDCG

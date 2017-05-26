@@ -139,7 +139,7 @@ namespace Kodai.GridNeighborSearch3D {
         void OnDrawGizmos() {
             Gizmos.DrawWireCube(range / 2, range);
 
-            Gizmos.color = Color.blue;
+            Gizmos.color = Color.grey;
             for (int z = 0; z < gridDim.z; z++) {
                 for (int i = 1; i < gridDim.y; i++) {
                     Gizmos.DrawLine(new Vector3(0, gridH * i, gridH * z), new Vector3(range.x, gridH * i, gridH*z));
