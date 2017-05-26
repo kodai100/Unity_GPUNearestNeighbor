@@ -9,6 +9,7 @@ namespace Kodai.GridNeighborSearch3D {
 
         public ComputeShader BitonicCS;
         public ComputeShader GridSortCS;
+        public ComputeShader ParticleProcess;
         public bool debugConsole; 
 
         ComputeBuffer particlesBufferRead;
@@ -19,6 +20,7 @@ namespace Kodai.GridNeighborSearch3D {
         ComputeBuffer particlesBufferWrite;
 
         private static int SIMULATION_BLOCK_SIZE = 32;
+        private static int SIMULATION_BLOCK_SIZE_FOR_GRID = 32;
         private int threadGroupSize;
 
         static uint BITONIC_BLOCK_SIZE = 512;
@@ -75,10 +77,8 @@ namespace Kodai.GridNeighborSearch3D {
 
         void Update() {
             GridSortCS.SetInt("_NumParticles", maxParticleNum);
-            GridSortCS.SetVector("_Range", range);
             GridSortCS.SetVector("_GridDim", gridDim);
             GridSortCS.SetFloat("_GridH", gridH);
-            GridSortCS.SetInt("_DispIdx", dispIdx);
 
             int kernel = 0;
             
@@ -92,7 +92,7 @@ namespace Kodai.GridNeighborSearch3D {
 
             kernel = GridSortCS.FindKernel("ClearGridIndicesCS");
             GridSortCS.SetBuffer(kernel, "_GridIndicesBufferWrite", gridIndicesBuffer);
-            GridSortCS.Dispatch(kernel, (int)(numGrid / SIMULATION_BLOCK_SIZE), 1, 1);
+            GridSortCS.Dispatch(kernel, (int)(numGrid / SIMULATION_BLOCK_SIZE_FOR_GRID), 1, 1);
 
             kernel = GridSortCS.FindKernel("BuildGridIndicesCS");
             GridSortCS.SetBuffer(kernel, "_GridBufferRead", gridBuffer);
@@ -111,11 +111,17 @@ namespace Kodai.GridNeighborSearch3D {
             GridSortCS.SetBuffer(kernel, "_ParticlesBufferWrite", particlesBufferRead);
             GridSortCS.Dispatch(kernel, threadGroupSize, 1, 1);
 
-            kernel = GridSortCS.FindKernel("Update");
-            GridSortCS.SetBuffer(kernel, "_ParticlesBufferRead", particlesBufferRead);
-            GridSortCS.SetBuffer(kernel, "_ParticlesBufferWrite", particlesBufferWrite);
-            GridSortCS.SetBuffer(kernel, "_GridIndicesBufferRead", gridIndicesBuffer);
-            GridSortCS.Dispatch(kernel, threadGroupSize, 1, 1);
+
+            ParticleProcess.SetInt("_NumParticles", maxParticleNum);
+            ParticleProcess.SetInt("_DispIdx", dispIdx);
+            ParticleProcess.SetVector("_GridDim", gridDim);
+            ParticleProcess.SetFloat("_GridH", gridH);
+
+            kernel = ParticleProcess.FindKernel("Update");
+            ParticleProcess.SetBuffer(kernel, "_ParticlesBufferRead", particlesBufferRead);
+            ParticleProcess.SetBuffer(kernel, "_ParticlesBufferWrite", particlesBufferWrite);
+            ParticleProcess.SetBuffer(kernel, "_GridIndicesBufferRead", gridIndicesBuffer);
+            ParticleProcess.Dispatch(kernel, threadGroupSize, 1, 1);
 
             SwapBuffer(ref particlesBufferRead, ref particlesBufferWrite);
         }
