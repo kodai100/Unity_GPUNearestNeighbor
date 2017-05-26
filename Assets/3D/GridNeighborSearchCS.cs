@@ -11,11 +11,11 @@ namespace Kodai.GridNeighborSearch3D {
         public ComputeShader GridSortCS;
         public bool debugConsole; 
 
-        ComputeBuffer particlesBufferRead;      // Particles Buffer (Position)
-        ComputeBuffer gridBuffer;               // Pair Of G_ID and P_ID
+        ComputeBuffer particlesBufferRead;
+        ComputeBuffer gridBuffer;
         ComputeBuffer gridPingPongBuffer;
-        ComputeBuffer gridIndicesBuffer;        // Indices of Grid ID Starts and ends
-        ComputeBuffer sortedParticlesBuffer;    // Grid Sorted Particles Data
+        ComputeBuffer gridIndicesBuffer;
+        ComputeBuffer sortedParticlesBuffer;
         ComputeBuffer particlesBufferWrite;
 
         private static int SIMULATION_BLOCK_SIZE = 32;
@@ -25,7 +25,6 @@ namespace Kodai.GridNeighborSearch3D {
         static uint TRANSPOSE_BLOCK_SIZE = 16;
 
         private int maxParticleNum;
-        // バイトニックソートは固定長でなければ動かない
         public enum Mode {
             NUM_8K, NUM_16K, NUM_32K, NUM_65K, NUM_130K, NUM_260K
         }
@@ -75,61 +74,45 @@ namespace Kodai.GridNeighborSearch3D {
         }
 
         void Update() {
-            // Set Variables
             GridSortCS.SetInt("_NumParticles", maxParticleNum);
             GridSortCS.SetVector("_Range", range);
             GridSortCS.SetVector("_GridDim", gridDim);
             GridSortCS.SetFloat("_GridH", gridH);
-
             GridSortCS.SetInt("_DispIdx", dispIdx);
 
             int kernel = 0;
-
-            // -----------------------------------------------------------------
-            // Build Grid : 粒子の位置からグリッドハッシュとパーティクルIDを結びつける
-            // -----------------------------------------------------------------
+            
             kernel = GridSortCS.FindKernel("BuildGridCS");
             GridSortCS.SetBuffer(kernel, "_ParticlesBufferRead", particlesBufferRead);
             GridSortCS.SetBuffer(kernel, "_GridBufferWrite", gridBuffer);
             GridSortCS.Dispatch(kernel, threadGroupSize, 1, 1);
-
-            // -----------------------------------------------------------------
-            // Sort Grid : グリッドインデックス順に粒子インデックスをソートする
-            // -----------------------------------------------------------------
-            // TODO GPUソートにするとgridBufferに欠陥が生じているっぽい
-            // 直下のコンソールで明らかに0番グリッドに属しているパーティクルの数が少ない
+            
             GPUSort(ref gridBuffer, ref gridPingPongBuffer);
-
             DebugConsole("Sorted", maxParticleNum, gridBuffer);
 
-            // -----------------------------------------------------------------
-            // Build Grid Indices : グリッドの開始終了インデックスを格納
-            // -----------------------------------------------------------------
-            // 初期化
             kernel = GridSortCS.FindKernel("ClearGridIndicesCS");
             GridSortCS.SetBuffer(kernel, "_GridIndicesBufferWrite", gridIndicesBuffer);
             GridSortCS.Dispatch(kernel, (int)(numGrid / SIMULATION_BLOCK_SIZE), 1, 1);
 
-            // 格納
             kernel = GridSortCS.FindKernel("BuildGridIndicesCS");
             GridSortCS.SetBuffer(kernel, "_GridBufferRead", gridBuffer);
             GridSortCS.SetBuffer(kernel, "_GridIndicesBufferWrite", gridIndicesBuffer);
             GridSortCS.Dispatch(kernel, threadGroupSize, 1, 1);
-
             DebugConsole("Indices", numGrid, gridIndicesBuffer);
-
-            //　-----------------------------------------------------------------
-            // Rearrange
-            //　-----------------------------------------------------------------
+            
             kernel = GridSortCS.FindKernel("RearrangeParticlesCS");
             GridSortCS.SetBuffer(kernel, "_GridBufferRead", gridBuffer);
             GridSortCS.SetBuffer(kernel, "_ParticlesBufferRead", particlesBufferRead);
             GridSortCS.SetBuffer(kernel, "_ParticlesBufferWrite", sortedParticlesBuffer);
             GridSortCS.Dispatch(kernel, threadGroupSize, 1, 1);
 
-            // Update
-            kernel = GridSortCS.FindKernel("Update");
+            kernel = GridSortCS.FindKernel("CopyBuffer");
             GridSortCS.SetBuffer(kernel, "_ParticlesBufferRead", sortedParticlesBuffer);
+            GridSortCS.SetBuffer(kernel, "_ParticlesBufferWrite", particlesBufferRead);
+            GridSortCS.Dispatch(kernel, threadGroupSize, 1, 1);
+
+            kernel = GridSortCS.FindKernel("Update");
+            GridSortCS.SetBuffer(kernel, "_ParticlesBufferRead", particlesBufferRead);
             GridSortCS.SetBuffer(kernel, "_ParticlesBufferWrite", particlesBufferWrite);
             GridSortCS.SetBuffer(kernel, "_GridIndicesBufferRead", gridIndicesBuffer);
             GridSortCS.Dispatch(kernel, threadGroupSize, 1, 1);
@@ -138,16 +121,19 @@ namespace Kodai.GridNeighborSearch3D {
         }
 
         void DebugConsole(string text, int num, ComputeBuffer cb) {
-            Uint2[] res = new Uint2[num];
-            cb.GetData(res);
-            string r1 = "", r2 = "";
-            foreach(Uint2 tmp in res) {
-                r1 += tmp.x + ",";
-                r2 += tmp.y + ",";
+            if (debugConsole) {
+                Uint2[] res = new Uint2[num];
+                cb.GetData(res);
+                string r1 = "", r2 = "";
+                foreach (Uint2 tmp in res) {
+                    r1 += tmp.x + ",";
+                    r2 += tmp.y + ",";
+                }
+                Debug.Log(text);
+                Debug.Log("<color=yellow>" + r1 + "</color>");
+                Debug.Log("<color=cyan>" + r2 + "</color>");
             }
-            Debug.Log(text);
-            Debug.Log("<color=yellow>"+r1+"</color>");
-            Debug.Log("<color=cyan>" + r2 + "</color>");
+            
         }
 
         void OnDrawGizmos() {

@@ -2,6 +2,7 @@
 #pragma kernel ClearGridIndicesCS
 #pragma kernel BuildGridIndicesCS
 #pragma kernel RearrangeParticlesCS
+#pragma kernel CopyBuffer
 #pragma kernel Update
 
 #define SIMULATION_BLOCK_SIZE 32
