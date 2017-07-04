@@ -6,19 +6,16 @@
 
 #define SIMULATION_BLOCK_SIZE 32
 
-struct Particle {
-	float3 pos;
-	float3 color;
-};
+#include "MyStructData.cginc"
 
-StructuredBuffer<Particle>	_ParticlesBufferRead;
-RWStructuredBuffer<Particle> _ParticlesBufferWrite;
+StructuredBuffer<MyData>	_ParticlesBufferRead;
+RWStructuredBuffer<MyData>	_ParticlesBufferWrite;
 
-StructuredBuffer  <uint2> _GridBufferRead;
-RWStructuredBuffer<uint2> _GridBufferWrite;
+StructuredBuffer  <uint2>	_GridBufferRead;
+RWStructuredBuffer<uint2>	_GridBufferWrite;
 
-StructuredBuffer  <uint2> _GridIndicesBufferRead;
-RWStructuredBuffer<uint2> _GridIndicesBufferWrite;
+StructuredBuffer  <uint2>	_GridIndicesBufferRead;
+RWStructuredBuffer<uint2>	_GridIndicesBufferWrite;
 
 int _NumParticles;
 float3 _GridDim;
