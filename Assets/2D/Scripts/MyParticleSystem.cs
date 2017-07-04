@@ -46,7 +46,7 @@ namespace Kodai.GridNeighborSearch2D {
         public ComputeShader GridSortCS;                // Generic class(GridOptimizer) cannot be serialized in inspector, so reluctantly declare this here(>_<)
         public Vector2 range = new Vector2(128, 128);   // Grid range (x, y)
         public Vector2 gridDim = new Vector2(16, 16);   // Grid division (x, y)
-        GridOptimizer<MyParticle> gridOptimizer;        // instance of Grid optimization class. Don't forget to call gridOptimizer.Release() in OnDestroy().
+        GridOptimizer2D<MyParticle> gridOptimizer;        // instance of Grid optimization class. Don't forget to call gridOptimizer.Release() in OnDestroy().
         #endregion ForGrid
 
         #region Accessor
@@ -124,7 +124,7 @@ namespace Kodai.GridNeighborSearch2D {
         }
 
         void InitializeOptimizer() {
-            gridOptimizer = new GridOptimizer<MyParticle>(numParticles, range, gridDim, BitonicCS, GridSortCS);
+            gridOptimizer = new GridOptimizer2D<MyParticle>(numParticles, range, gridDim, BitonicCS, GridSortCS);
         }
 
         void SwapBuffer(ref ComputeBuffer src, ref ComputeBuffer dst) {
