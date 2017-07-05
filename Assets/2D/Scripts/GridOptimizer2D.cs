@@ -6,16 +6,6 @@ namespace Kodai.GridNeighborSearch2D {
 
         private Vector2 gridDim;
 
-        #region Accessor
-        public float GetGridH() {
-            return gridH;
-        }
-
-        public ComputeBuffer GetGridIndicesBuffer() {
-            return gridIndicesBuffer;
-        }
-        #endregion
-
         public GridOptimizer2D(int numObjects, Vector2 range, Vector2 dimension, ComputeShader bitonic, ComputeShader gridSort) : base(numObjects, bitonic, gridSort) {
             this.gridDim = dimension;
             this.numGrid = (int)(dimension.x * dimension.y);

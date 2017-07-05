@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 
+[System.Serializable]
 public abstract class GridOptimizerBase {
 
     protected ComputeBuffer gridBuffer;
@@ -9,8 +10,8 @@ public abstract class GridOptimizerBase {
 
     protected int numObjects;
 
-    protected ComputeShader BitonicCS;    // I want to assign this in inspector
-    protected ComputeShader GridSortCS;   // I want to assign this in inspector
+    protected ComputeShader BitonicCS;    // I want to assign this in inspector but I can't
+    protected ComputeShader GridSortCS;   // I want to assign this in inspector but I can't
     protected static readonly int SIMULATION_BLOCK_SIZE_FOR_GRID = 32;
     protected static readonly uint BITONIC_BLOCK_SIZE = 512;
     protected static readonly uint TRANSPOSE_BLOCK_SIZE = 16;
@@ -25,6 +26,16 @@ public abstract class GridOptimizerBase {
         this.GridSortCS = gridSort;
         this.threadGroupSize = numObjects / SIMULATION_BLOCK_SIZE_FOR_GRID;
     }
+
+    #region Accessor
+    public float GetGridH() {
+        return gridH;
+    }
+
+    public ComputeBuffer GetGridIndicesBuffer() {
+        return gridIndicesBuffer;
+    }
+    #endregion
 
     public void Release() {
         DestroyBuffer(gridBuffer);
