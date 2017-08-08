@@ -12,44 +12,26 @@ namespace Kodai.NeighborSearch {
     public enum GridType { Grid2D, Grid3D };
 
     [System.Serializable]
-    public class GridOptimizer<Data, Dim, Vec> where Data : struct where Dim : IGridVector<Vec> where Vec : struct{
+    public class GridOptimizer<Data, Dim, Vec> : IDisposable where Data : struct where Dim : IGridVector<Vec> where Vec : struct{
 
-        protected ComputeBuffer gridBuffer;
-        protected ComputeBuffer gridPingPongBuffer;
-        protected ComputeBuffer gridIndicesBuffer;
-        protected ComputeBuffer sortedObjectsBufferOutput;
+        private ComputeBuffer gridBuffer;
+        private ComputeBuffer gridPingPongBuffer;
+        private ComputeBuffer gridIndicesBuffer;
+        private ComputeBuffer sortedObjectsBufferOutput;
         
-        protected int numObjects;
+        private int numObjects;
 
-        protected ComputeShader BitonicCS;    // I want to assign this in inspector but I can't
-        protected ComputeShader GridSortCS;   // I want to assign this in inspector but I can't
-        protected static readonly int SIMULATION_BLOCK_SIZE_FOR_GRID = 32;
-        protected static readonly uint BITONIC_BLOCK_SIZE = 512;
-        protected static readonly uint TRANSPOSE_BLOCK_SIZE = 16;
+        private ComputeShader BitonicCS;
+        private ComputeShader GridSortCS;
+        private static readonly int SIMULATION_BLOCK_SIZE_FOR_GRID = 32;
+        private static readonly uint BITONIC_BLOCK_SIZE = 512;
+        private static readonly uint TRANSPOSE_BLOCK_SIZE = 16;
 
-        protected int threadGroupSize;
-        protected int numGrid;
-        protected float gridH;
+        private int threadGroupSize;
+        private int numGrid;
+        private float gridH;
 
         private Dim gridDim;
-
-        public GridOptimizer(ParticleNumEnum numParticleEnum, Vec range, Dim dimension) {
-            this.numObjects = (int)numParticleEnum;
-
-            this.BitonicCS = (ComputeShader)Resources.Load("BitonicSort");
-            this.GridSortCS = (ComputeShader)Resources.Load(Enum.GetName(typeof(GridType), dimension.GetGridType()));
-            this.threadGroupSize = numObjects / SIMULATION_BLOCK_SIZE_FOR_GRID;
-
-
-            this.gridDim = dimension;
-            this.numGrid = (int) dimension.OwnMultiply();
-            this.gridH = dimension.GetGridH(range);
-
-            InitializeBuffer();
-
-            Debug.Log("=== Instantiated Grid Sort === \nRange : " + range + "\nNumGrid : " + numGrid + "\nGridDim : " + gridDim + "\nGridH : " + gridH);
-            
-        }
 
         #region Accessor
         public float GridH {
@@ -61,36 +43,53 @@ namespace Kodai.NeighborSearch {
         }
         #endregion
 
-        void InitializeBuffer() {
+        public GridOptimizer(ParticleNumEnum numParticleEnum, Vec range, Dim dimension) {
+            numObjects = (int)numParticleEnum;
+            threadGroupSize = numObjects / SIMULATION_BLOCK_SIZE_FOR_GRID;
+
+            // 名前からコンピュートシェーダを取得
+            BitonicCS = (ComputeShader)Resources.Load("BitonicSort");
+            GridSortCS = (ComputeShader)Resources.Load(Enum.GetName(typeof(GridType), dimension.GetGridType()));
+           
+            gridDim = dimension;
+            numGrid = (int) dimension.OwnMultiply();
+            gridH = dimension.GetGridH(range);
+
             gridBuffer = new ComputeBuffer(numObjects, Marshal.SizeOf(typeof(Uint2)));
             gridPingPongBuffer = new ComputeBuffer(numObjects, Marshal.SizeOf(typeof(Uint2)));
             gridIndicesBuffer = new ComputeBuffer(numGrid, Marshal.SizeOf(typeof(Uint2)));
             sortedObjectsBufferOutput = new ComputeBuffer(numObjects, Marshal.SizeOf(typeof(Data)));
+
+            Debug.Log("=== Initialized Grid Sort Package === \nRange : " + range + "\nNumGrid : " + numGrid + "\nGridDim : " + gridDim + "\nGridH : " + gridH);
+        }
+        
+        public void Dispose() {
+            Release();
         }
 
-        protected void SetCSVariables() {
-            GridSortCS.SetVector("_GridDim", gridDim.ToVector3());
-            GridSortCS.SetFloat("_GridH", gridH);
-        }
-
-        public void Release() {
+        private void Release() {
             DestroyBuffer(gridBuffer);
             DestroyBuffer(gridIndicesBuffer);
             DestroyBuffer(gridPingPongBuffer);
             DestroyBuffer(sortedObjectsBufferOutput);
         }
 
-        void DestroyBuffer(ComputeBuffer buffer) {
+        private void DestroyBuffer(ComputeBuffer buffer) {
             if (buffer != null) {
                 buffer.Release();
                 buffer = null;
             }
         }
 
+        /// <summary>
+        /// Grid optimization. Please call this function before run your particle process.
+        /// </summary>
+        /// <param name="objectsBufferInput">Your particle data. Returns sorted buffer and make indices buffer (you can get from GridIndicesBuffer after this process)</param>
         public void GridSort(ref ComputeBuffer objectsBufferInput) {
 
             GridSortCS.SetInt("_NumParticles", numObjects);
-            SetCSVariables();
+            GridSortCS.SetVector("_GridDim", gridDim.ToVector3());
+            GridSortCS.SetFloat("_GridH", gridH);
 
             int kernel = 0;
 

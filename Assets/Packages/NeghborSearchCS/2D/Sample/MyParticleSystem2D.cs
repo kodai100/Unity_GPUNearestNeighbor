@@ -15,5 +15,3 @@ public class MyParticleSystem2D : MyParticleSystemBase<IntDim2D, Vector2> {
         return particles;
     }
 }
-
-

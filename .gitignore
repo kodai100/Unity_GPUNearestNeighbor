@@ -19,3 +19,5 @@ UnityVS.Aries.sln.DotSettings
 
 #Unity3D Generated File On Crash Reports
 sysinfo.txt
+*.db
+*.opendb

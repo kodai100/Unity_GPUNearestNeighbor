@@ -78,7 +78,7 @@ public abstract class MyParticleSystemBase<Dim, Vec> : MonoBehaviour where Dim :
     void OnDestroy() {
         DestroyBuffer(particlesBufferRead);
         DestroyBuffer(particlesBufferWrite);
-        NSSettings.GridOptimizer.Release();                // Must
+        NSSettings.GridOptimizer.Dispose(); // Must
     }
 
     void SwapBuffer(ref ComputeBuffer src, ref ComputeBuffer dst) {

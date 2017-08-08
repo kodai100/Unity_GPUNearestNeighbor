@@ -9,8 +9,6 @@ public class MyParticleSystem3D : MyParticleSystemBase<IntDim3D, Vector3> {
     
     protected override MyParticleData<Vector3>[] ScatterParticle(int num, Vector3 range) {
 
-        Debug.Log(num + ", " + range);
-
         var particles = new MyParticleData<Vector3>[num];
         for (int i = 0; i < num; i++) {
             particles[i] = new MyParticleData<Vector3>(new Vector3(Random.Range(1, range.x), Random.Range(1, range.y), Random.Range(1, range.z)));
