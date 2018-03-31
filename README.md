@@ -1,6 +1,6 @@
-# Unity_NeighborSearchCS
+# Unity GPU Nearest Neighbor
 
-Grid neighbor search algorithm implementation using Unity(Direct3D) Compute Shader.
+Implementation of nearest neighbor search algorithm with Unity Compute Shader.
 
 ## 2D
 <img alt="Thumbnail" src="https://github.com/kodai100/Unity_NeighborSearchCS/blob/master/Assets/Packages/NeghborSearchCS/Thumbnail/neighbor.gif" width=500>
