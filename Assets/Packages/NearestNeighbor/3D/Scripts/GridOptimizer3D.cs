@@ -1,15 +1,18 @@
 ﻿using UnityEngine;
 using System.Runtime.InteropServices;
 
-namespace Kodai.GridNeighborSearch3D {
+namespace NearestNeighbor {
+
     public class GridOptimizer3D<T> : GridOptimizerBase where T : struct {
         
         private Vector3 gridDim;
 
-        public GridOptimizer3D(int numObjects, Vector3 range, Vector3 dimension, ComputeShader bitonic, ComputeShader gridSort) : base(numObjects, bitonic, gridSort) {
+        public GridOptimizer3D(int numObjects, Vector3 range, Vector3 dimension) : base(numObjects) {
             this.gridDim = dimension;
             this.numGrid = (int)(dimension.x * dimension.y * dimension.z);
             this.gridH = range.x / gridDim.x;
+
+            this.GridSortCS = (ComputeShader)Resources.Load("GridSort3D");
 
             InitializeBuffer();
 

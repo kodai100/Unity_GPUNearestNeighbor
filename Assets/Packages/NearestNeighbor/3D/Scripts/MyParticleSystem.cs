@@ -1,36 +1,33 @@
 ﻿using System.Runtime.InteropServices;
 using UnityEngine;
+using NearestNeighbor;
 
-namespace Kodai.GridNeighborSearch2D {
-
+namespace NearestNeighborSample.ThreeDimension
+{
     /// <summary>
     /// Define your data 
     /// </summary>
-    public struct MyParticle {
-        public Vector2 pos;
+    public struct MyParticle
+    {
+        public Vector3 pos;
         public Vector3 color;
-        public MyParticle(Vector2 pos) {
+        public MyParticle(Vector3 pos)
+        {
             this.pos = pos;
             this.color = new Vector3(1, 1, 1);
         }
     }
 
     /// <summary>
-    /// Bitonic sort can handle 2^X only 
-    /// </summary>
-    public enum Mode {
-        NUM_8K = 8192, NUM_16K = 16384, NUM_32K = 32768, NUM_65K = 65536, NUM_130K = 131072, NUM_260K = 262144
-    }
-
-    /// <summary>
     /// Particle system with Grid Optimization
     /// </summary>
-    public class MyParticleSystem : MonoBehaviour {
+    public class MyParticleSystem : MonoBehaviour
+    {
 
         #region ForParticle
         public ComputeShader ParticleCS;
-        
-        public Mode mode = Mode.NUM_8K;
+
+        public PARTICLE_NUM mode = PARTICLE_NUM.NUM_8K;
         public int dispIdx;
         public Material ParticleRenderMat;
 
@@ -42,36 +39,38 @@ namespace Kodai.GridNeighborSearch2D {
         #endregion ForParticle
 
         #region ForGrid
-        public ComputeShader BitonicCS;                 // Generic class(GridOptimizer) cannot be serialized in inspector, so reluctantly declare this here(>_<)
-        public ComputeShader GridSortCS;                // Generic class(GridOptimizer) cannot be serialized in inspector, so reluctantly declare this here(>_<)
-        public Vector2 range = new Vector2(128, 128);   // Grid range (x, y)
-        public Vector2 gridDim = new Vector2(16, 16);   // Grid division (x, y)
-        [SerializeField] GridOptimizerBase gridOptimizer;        // instance of Grid optimization class. Don't forget to call gridOptimizer.Release() in OnDestroy().
+        public Vector3 range = new Vector3(128, 128, 128);
+        public Vector3 gridDim = new Vector3(16, 16, 16);
+        GridOptimizer3D<MyParticle> gridOptimizer;
         #endregion ForGrid
 
         #region Accessor
-        public ComputeBuffer GetBuffer() {
+        public ComputeBuffer GetBuffer()
+        {
             return particlesBufferRead;
         }
 
-        public int GetParticleNum() {
+        public int GetParticleNum()
+        {
             return numParticles;
         }
         #endregion Accessor
 
         #region MonoBehaviourFuncs
-        void Start() {
+        void Start()
+        {
             InitializeVariables();
             InitializeBuffer();
             InitializeParticle();
             InitializeOptimizer();
         }
-        
-        void Update() {
+
+        void Update()
+        {
 
             // ---- Grid Optimization -------------------------------------------------------------------
             gridOptimizer.GridSort(ref particlesBufferRead);    // Pass the buffer you want to optimize  
-            // ---- Grid Optimization -------------------------------------------------------------------
+                                                                // ---- Grid Optimization -------------------------------------------------------------------
 
 
             // ---- Your Particle Process -------------------------------------------------------------------
@@ -90,14 +89,16 @@ namespace Kodai.GridNeighborSearch2D {
             SwapBuffer(ref particlesBufferRead, ref particlesBufferWrite);
         }
 
-        private void OnRenderObject() {
+        private void OnRenderObject()
+        {
             Material m = ParticleRenderMat;
             m.SetPass(0);
             m.SetBuffer("_Particles", GetBuffer());
             Graphics.DrawProcedural(MeshTopology.Points, GetParticleNum());
         }
 
-        void OnDestroy() {
+        void OnDestroy()
+        {
             DestroyBuffer(particlesBufferRead);
             DestroyBuffer(particlesBufferWrite);
             gridOptimizer.Release();                // Must
@@ -105,36 +106,44 @@ namespace Kodai.GridNeighborSearch2D {
         #endregion MonoBehaviourFuncs
 
         #region PrivateFuncs
-        void InitializeVariables() {
+        void InitializeVariables()
+        {
             numParticles = (int)mode;
         }
 
-        void InitializeBuffer() {
+        void InitializeBuffer()
+        {
             particlesBufferRead = new ComputeBuffer(numParticles, Marshal.SizeOf(typeof(MyParticle)));
             particlesBufferWrite = new ComputeBuffer(numParticles, Marshal.SizeOf(typeof(MyParticle)));
         }
 
-        void InitializeParticle() {
+        void InitializeParticle()
+        {
             MyParticle[] particles = new MyParticle[numParticles];
-            for (int i = 0; i < numParticles; i++) {
-                particles[i] = new MyParticle(new Vector2(Random.Range(1, range.x), Random.Range(1, range.y)));
+            for (int i = 0; i < numParticles; i++)
+            {
+                particles[i] = new MyParticle(new Vector3(Random.Range(1, range.x), Random.Range(1, range.y), Random.Range(1, range.z)));
             }
             threadGroupSize = numParticles / SIMULATION_BLOCK_SIZE;
             particlesBufferRead.SetData(particles);
         }
 
-        void InitializeOptimizer() {
-            gridOptimizer = new GridOptimizer2D<MyParticle>(numParticles, range, gridDim, BitonicCS, GridSortCS);
+        void InitializeOptimizer()
+        {
+            gridOptimizer = new GridOptimizer3D<MyParticle>(numParticles, range, gridDim);
         }
 
-        void SwapBuffer(ref ComputeBuffer src, ref ComputeBuffer dst) {
+        void SwapBuffer(ref ComputeBuffer src, ref ComputeBuffer dst)
+        {
             ComputeBuffer tmp = src;
             src = dst;
             dst = tmp;
         }
 
-        void DestroyBuffer(ComputeBuffer buffer) {
-            if (buffer != null) {
+        void DestroyBuffer(ComputeBuffer buffer)
+        {
+            if (buffer != null)
+            {
                 buffer.Release();
                 buffer = null;
             }

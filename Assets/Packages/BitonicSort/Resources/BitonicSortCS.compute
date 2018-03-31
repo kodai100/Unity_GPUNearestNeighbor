@@ -1,21 +1,10 @@
-﻿//--------------------------------------------------------------------------------------
-// Pragmas
-//--------------------------------------------------------------------------------------
-
-#pragma kernel BitonicSort
+﻿#pragma kernel BitonicSort
 #pragma kernel MatrixTranspose
-
-//--------------------------------------------------------------------------------------
-// Constants
-//--------------------------------------------------------------------------------------
 
 #define BITONIC_BLOCK_SIZE 512
 #define TRANSPOSE_BLOCK_SIZE 16
 
-//--------------------------------------------------------------------------------------
-// Constant Buffers
-//--------------------------------------------------------------------------------------
-cbuffer CB
+cbuffer cb
 {
 	uint _Level;
 	uint _LevelMask;
@@ -23,15 +12,9 @@ cbuffer CB
 	uint _Height;
 };
 
-//--------------------------------------------------------------------------------------
-// Structured Buffers
-//--------------------------------------------------------------------------------------
 StructuredBuffer  <uint2> Input : register(t0);
 RWStructuredBuffer<uint2> Data  : register(u0);
 
-//--------------------------------------------------------------------------------------
-// Bitonic Sort Compute Shader
-//--------------------------------------------------------------------------------------
 groupshared uint2 shared_data[BITONIC_BLOCK_SIZE];
 
 bool Compare(uint2 left, uint2 right) {
@@ -57,9 +40,7 @@ void BitonicSort(uint3 Gid  : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint
 	Data[DTid.x] = shared_data[GI];
 }
 
-//--------------------------------------------------------------------------------------
-// Matrix Transpose Compute Shader
-//--------------------------------------------------------------------------------------
+
 groupshared uint2 transpose_shared_data[TRANSPOSE_BLOCK_SIZE * TRANSPOSE_BLOCK_SIZE];
 
 [numthreads(TRANSPOSE_BLOCK_SIZE, TRANSPOSE_BLOCK_SIZE, 1)]

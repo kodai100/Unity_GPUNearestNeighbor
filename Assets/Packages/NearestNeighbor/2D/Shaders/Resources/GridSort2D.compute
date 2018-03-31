@@ -6,42 +6,21 @@
 
 #define SIMULATION_BLOCK_SIZE 32
 
-#include "MyStructData.cginc"
+#include "./NearestNeighbor2D.cginc"
 
-StructuredBuffer<MyData>   _ParticlesBufferRead;
-RWStructuredBuffer<MyData> _ParticlesBufferWrite;
+StructuredBuffer<Data>   _ParticlesBufferRead;
+RWStructuredBuffer<Data> _ParticlesBufferWrite;
 
 StructuredBuffer  <uint2> _GridBufferRead;
 RWStructuredBuffer<uint2> _GridBufferWrite;
 
-StructuredBuffer  <uint2> _GridIndicesBufferRead;
-RWStructuredBuffer<uint2> _GridIndicesBufferWrite;
+
 
 cbuffer cb {
 	int _NumParticles;
-	float2 _GridDim;
-	float _GridH;
 };
 
-float2 GridCalculateCell(float2 pos) {
-	return pos / _GridH;
-}
 
-uint GridKey(uint2 xy) {
-	return xy.x + xy.y * _GridDim.x;
-}
-
-uint2 MakeKeyValuePair(uint2 xy, uint value) {
-	return uint2(GridKey(xy), value);
-}
-
-uint GridGetKey(uint2 pair) {
-	return pair.x;
-}
-
-uint GridGetValue(uint2 pair) {
-	return pair.y;
-}
 
 //--------------------------------------------------------------------------------------
 // Build Grid
