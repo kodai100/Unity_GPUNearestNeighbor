@@ -1,0 +1,80 @@
+﻿#pragma kernel BuildGridCS
+#pragma kernel ClearGridIndicesCS
+#pragma kernel BuildGridIndicesCS
+#pragma kernel RearrangeParticlesCS
+#pragma kernel CopyBuffer
+
+#define SIMULATION_BLOCK_SIZE 32
+
+#include "./NearestNeighbor2D.cginc"
+
+StructuredBuffer<Data>   _ParticlesBufferRead;
+RWStructuredBuffer<Data> _ParticlesBufferWrite;
+
+StructuredBuffer  <uint2> _GridBufferRead;
+RWStructuredBuffer<uint2> _GridBufferWrite;
+
+
+
+cbuffer cb {
+	int _NumParticles;
+};
+
+
+
+//--------------------------------------------------------------------------------------
+// Build Grid
+//--------------------------------------------------------------------------------------
+[numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
+void BuildGridCS(uint3 DTid : SV_DispatchThreadID) {
+	uint P_ID = DTid.x;
+	if (P_ID > (uint)(_NumParticles - 1)) return;
+
+	float2 position = _ParticlesBufferRead[P_ID].pos;
+	float2 grid_xy = GridCalculateCell(position);
+
+	_GridBufferWrite[P_ID] = MakeKeyValuePair((uint2)grid_xy, P_ID);
+}
+
+//--------------------------------------------------------------------------------------
+// Build Grid Indices
+//--------------------------------------------------------------------------------------
+[numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
+void ClearGridIndicesCS(uint3 DTid : SV_DispatchThreadID) {
+	_GridIndicesBufferWrite[DTid.x] = uint2(0, 0);
+}
+
+[numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
+void BuildGridIndicesCS(uint3 DTid : SV_DispatchThreadID) {
+	const unsigned int P_ID = DTid.x;
+	uint P_ID_PREV = (P_ID == 0) ? (uint)_NumParticles : P_ID;
+	P_ID_PREV--;
+	
+	uint P_ID_NEXT = P_ID + 1;
+	if (P_ID_NEXT == (uint)_NumParticles) { P_ID_NEXT = 0; }
+
+	uint cell = GridGetKey(_GridBufferRead[P_ID]);
+	uint cell_prev = GridGetKey(_GridBufferRead[P_ID_PREV]);
+	uint cell_next = GridGetKey(_GridBufferRead[P_ID_NEXT]);
+
+	if (cell != cell_prev) {
+		_GridIndicesBufferWrite[cell].x = P_ID;
+	}
+
+	if (cell != cell_next) {
+		_GridIndicesBufferWrite[cell].y = P_ID + 1;
+	}
+}
+
+[numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
+void RearrangeParticlesCS(uint3 DTid : SV_DispatchThreadID) {
+	const unsigned int ID = DTid.x;
+	const unsigned int G_ID = GridGetValue(_GridBufferRead[ID]);
+	_ParticlesBufferWrite[ID] = _ParticlesBufferRead[G_ID];
+}
+
+[numthreads(SIMULATION_BLOCK_SIZE, 1, 1)]
+void CopyBuffer(uint3 DTid : SV_DispatchThreadID) {
+	uint id = DTid.x;
+	_ParticlesBufferWrite[id] = _ParticlesBufferRead[id];
+}
