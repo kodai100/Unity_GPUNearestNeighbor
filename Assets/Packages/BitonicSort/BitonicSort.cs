@@ -11,14 +11,20 @@ namespace Sorting.BitonicSort
 
         protected ComputeShader BitonicCS;
 
+        // ソート対象の数
         int numElements;
 
         public BitonicSort(int numElements)
         {
-            this.BitonicCS = (ComputeShader)Resources.Load("BitonicSortCS");
+            this.BitonicCS = (ComputeShader)Resources.Load("BitonicSortCS");    // シェーダーの読み込み
             this.numElements = numElements;
         }
 
+        /// <summary>
+        /// ソートする
+        /// </summary>
+        /// <param name="inBuffer">ソートしたいバッファ</param>
+        /// <param name="tempBuffer">一時的に用意するバッファ</param>
         public void Sort(ref ComputeBuffer inBuffer, ref ComputeBuffer tempBuffer)
         {
             ComputeShader sortCS = BitonicCS;
@@ -26,10 +32,12 @@ namespace Sorting.BitonicSort
             int KERNEL_ID_BITONICSORT = sortCS.FindKernel("BitonicSort");
             int KERNEL_ID_TRANSPOSE = sortCS.FindKernel("MatrixTranspose");
 
-            uint NUM_ELEMENTS = (uint)numElements;
-            uint MATRIX_WIDTH = BITONIC_BLOCK_SIZE;
-            uint MATRIX_HEIGHT = (uint)NUM_ELEMENTS / BITONIC_BLOCK_SIZE;
+            uint NUM_ELEMENTS = (uint) numElements;
+            uint MATRIX_WIDTH = BITONIC_BLOCK_SIZE;     // スレッドブロック内の要素数
+            uint MATRIX_HEIGHT = (uint) NUM_ELEMENTS / BITONIC_BLOCK_SIZE;  // スレッドブロックの個数
 
+            // 偶数ずつ増加(スレッドグループ内でソート)
+            // グループ内のスレッド数/2回実行される
             for (uint level = 2; level <= BITONIC_BLOCK_SIZE; level <<= 1)
             {
                 SetGPUSortConstants(sortCS, level, level, MATRIX_HEIGHT, MATRIX_WIDTH);
@@ -39,6 +47,7 @@ namespace Sorting.BitonicSort
                 sortCS.Dispatch(KERNEL_ID_BITONICSORT, (int)(NUM_ELEMENTS / BITONIC_BLOCK_SIZE), 1, 1);
             }
 
+            // スレッドグループより大きいインデックスを対象にソート
             // Then sort the rows and columns for the levels > than the block size
             // Transpose. Sort the Columns. Transpose. Sort the Rows.
             for (uint level = (BITONIC_BLOCK_SIZE << 1); level <= NUM_ELEMENTS; level <<= 1)
@@ -52,6 +61,8 @@ namespace Sorting.BitonicSort
                 // Sort the transposed column data
                 sortCS.SetBuffer(KERNEL_ID_BITONICSORT, "Data", tempBuffer);
                 sortCS.Dispatch(KERNEL_ID_BITONICSORT, (int)(NUM_ELEMENTS / BITONIC_BLOCK_SIZE), 1, 1);
+
+
 
                 // Transpose the data from buffer 2 back into buffer 1
                 SetGPUSortConstants(sortCS, BITONIC_BLOCK_SIZE, level, MATRIX_HEIGHT, MATRIX_WIDTH);
